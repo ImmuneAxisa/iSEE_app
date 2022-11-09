@@ -128,10 +128,10 @@ lp <-
                 HTML(
                   paste(
                     "path to sce file (rds, qs, HDF5).",
-                    "\n",
+                    "",
                     "NB: in the case of HDF5, object saved with `HDF5Array::saveHDF5SummarizedExperiment` is expected,",
-                    "where a folder is generated containing the .h5 array and the shell saved as rds (See HDF5Array package manual for more details).",
-                    "Select the .h5 file within the folder archive",
+                    "where a folder is generated containing the .h5 array and the shell saved as .rds (See HDF5Array package manual for more details).",
+                    "In this case, select the both .h5 and .rds files within the folder archive",
                     sep = "<br/>"
                   )
                 ),
