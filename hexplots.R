@@ -14,6 +14,10 @@ collated[.plotMinPercentile] <- "numeric"
 .plotMaxPercentile <- "MaxPercentile"
 collated[.plotMaxPercentile] <- "numeric"
 
+.plotBinShape <- "BinShape"
+collated[.plotBinShape] <- "character"
+
+
 #' @export
 #' @importClassesFrom iSEE ReducedDimensionPlot
 #' @import SummarizedExperiment
@@ -42,6 +46,7 @@ setMethod("initialize", "ReducedDimensionHexPlot", function(.Object, ...) {
   args <- .emptyDefault(args, .plotBinResolution, 100)
   args <- .emptyDefault(args, .plotMinPercentile, 0)
   args <- .emptyDefault(args, .plotMaxPercentile, 100)
+  args <- .emptyDefault(args, .plotBinShape, "hex")
   args[["Downsample"]] <- FALSE
   
   do.call(callNextMethod, c(list(.Object), args))
@@ -77,6 +82,8 @@ One should avoid setting this too low as then the plot just collapses to showing
   })
   
   tagList(
+    .selectInput.iSEE(x, .plotBinShape, label = "Bin shape",
+                      choices = c("hexbin" = "hex", "tile" = "2d"), selected = x[[.plotBinShape]]),
     .numericInput.iSEE(x, .plotBinResolution, label="Bin resolution:",
                        min=1, value=x[[.plotBinResolution]], step = 1)
   )
@@ -190,7 +197,7 @@ setMethod(".createObservers", "ReducedDimensionHexPlot", function(x, se, input, 
   plot_name <- .getEncodedName(x)
   
   .createProtectedParameterObservers(plot_name,
-                                     fields=c(.plotBinResolution, .plotMinPercentile, .plotMaxPercentile),
+                                     fields=c(.plotBinResolution, .plotMinPercentile, .plotMaxPercentile, .plotBinShape),
                                      input=input, pObjects=pObjects, rObjects=rObjects)
   
   invisible(NULL)
@@ -306,20 +313,24 @@ setMethod(".generateDotPlot", "ReducedDimensionHexPlot", function(x, labels, env
                              param_choices[["ColorByFeatureNameAssay"]])
     }
     
-    plot_cmds[["hex"]] <- sprintf('ggplot2::stat_summary_hex(%s, geom = "hex", bins = %i, fun=%s, alpha=%s, plot.data) +',
+    scale_args <- sprintf("limits = quantile(plot.data$ColorBy, c(%i, %i)/100), oob = scales::oob_squish, colors = %s",
+                          as.integer(param_choices[[.plotMinPercentile]]),
+                          as.integer(param_choices[[.plotMaxPercentile]]),
+                          color_scale)
+    
+    plot_cmds[["hex"]] <- sprintf('ggplot2::stat_summary_%s(%s, bins = %i, fun=%s, alpha=%s, plot.data) +',
+                                  param_choices[[.plotBinShape]],
                                   aes,
                                   as.integer(param_choices[[.plotBinResolution]]),
                                   deparse("mean"),
                                   param_choices[["PointAlpha"]])
-    plot_cmds[["fill_scale"]] <- sprintf("scale_fill_gradientn(limits = quantile(plot.data$ColorBy, c(%i, %i)/100), oob = scales::oob_squish, colors = %s) +",
-                                    as.integer(param_choices[[.plotMinPercentile]]),
-                                    as.integer(param_choices[[.plotMaxPercentile]]),
-                                    color_scale)
-    plot_cmds[["color_scale"]] <- sprintf("scale_color_gradientn(limits = quantile(plot.data$ColorBy, c(%i, %i)/100), oob = scales::oob_squish, colors = %s) +",
-                                         as.integer(param_choices[[.plotMinPercentile]]),
-                                         as.integer(param_choices[[.plotMaxPercentile]]),
-                                         color_scale)
+    
+    plot_cmds[["fill_scale"]] <- sprintf("scale_fill_gradientn(%s) +", scale_args)
+    
+    plot_cmds[["color_scale"]] <- sprintf("scale_color_gradientn(%s) +", scale_args)
+    
     plot_cmds[["guides"]] <- "guides(color = 'none') +"
+    
   } else if (color_choice == "Sample name") {
     plot_cmds[["hex"]] <- c(fallback, sprintf(
       "geom_point(%s, data=subset(plot.data, ColorBy == 'TRUE'), color=%s, alpha=1, size=5*%s) +",
