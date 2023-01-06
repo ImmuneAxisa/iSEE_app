@@ -4,3 +4,6 @@
 .Ruserdata
 *.Rproj
 my_h5_se
+.rsync_exclude
+rsync_to_share.sh
+generate_dummy_HDF5_sce.R
