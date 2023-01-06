@@ -8,8 +8,8 @@ if (!require(iSEE))
 if (!require(iSEEu))
   BiocManager::install("iSEEu"); library(iSEEu)
 
-
-# source options
+setwd(dirname(rstudioapi::getActiveDocumentContext()[["path"]]))
+# source options: these files need to be in the same directory as app.R
 source("hexplots.R")
 source("custom_config.R")
 
@@ -17,7 +17,7 @@ options(shiny.maxRequestSize = 10000 * 1024 ^ 2)
 
 
 # start app
-iSEE(
+app <- iSEE(
   landingPage = lp,
   initial = list(
     ReducedDimensionPlot(),
@@ -38,3 +38,6 @@ iSEE(
     showNotification("hooray, saved!", type = "message")
   }
 )
+
+
+shiny::runApp(app)
